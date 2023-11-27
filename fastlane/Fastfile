@@ -131,7 +131,7 @@ platform :ios do
       }
     end
 
-    configure_bundle_id("LoopFollow_Second", "com.#{TEAMID}.LoopFollow_Second", [
+    configure_bundle_id("LoopFollowSecond", "com.#{TEAMID}.LoopFollow_Second", [
     ])
     
   end
