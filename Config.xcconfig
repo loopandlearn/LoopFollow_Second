@@ -9,7 +9,7 @@
 //  Copyright © 2018 Perceptus.org. All rights reserved.
 //
 unique_id = ${DEVELOPMENT_TEAM}
-app_suffix = _Second
+app_suffix = .Second
 
 //Version (DEFAULT)
 LOOP_FOLLOW_MARKETING_VERSION = 2.0.02
