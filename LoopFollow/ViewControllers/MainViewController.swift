@@ -165,7 +165,8 @@ class MainViewController: UIViewController, UITableViewDataSource, ChartViewDele
         UserDefaultsRepository.infoNames.value.append("Pred.")
         UserDefaultsRepository.infoNames.value.append("Carbs today")
         UserDefaultsRepository.infoNames.value.append("Autosens")
-        
+        UserDefaultsRepository.infoNames.value.append("User")
+                
         // Reset deprecated settings
         UserDefaultsRepository.debugLog.value = false;
         UserDefaultsRepository.alwaysDownloadAllBG.value = true;
@@ -186,7 +187,11 @@ class MainViewController: UIViewController, UITableViewDataSource, ChartViewDele
             self.tableData.append(infoData(name:UserDefaultsRepository.infoNames.value[i], value:""))
         }
         createDerivedData()
-        
+        if let displayName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String {
+            print("Display Name: \(displayName)")
+            tableData[12].value = displayName
+        }
+
         smallGraphHeightConstraint.constant = CGFloat(UserDefaultsRepository.smallGraphHeight.value)
         self.view.layoutIfNeeded()
       
