@@ -5,20 +5,12 @@
 //  Created by Jon Fawcett on 6/16/20.
 //  Copyright © 2020 Jon Fawcett. All rights reserved.
 //
-//
-//
-//
-//
-//
-
 
 import Foundation
 import AVFoundation
 import CallKit
 
 extension MainViewController {
-    
-    
     func checkAlarms(bgs: [ShareGlucoseData]) {
         // Don't check or fire alarms within 1 minute of prior alarm
         if checkAlarmTimer.isValid {  return }
@@ -56,7 +48,6 @@ extension MainViewController {
         
         
         let currentBGTime = bgs[bgs.count - 1].date
-        var alarmTriggered = false
         var numLoops = 0
         var playSound = true
         checkQuietHours()
@@ -401,7 +392,6 @@ extension MainViewController {
                     // Get the latest bolus over the small bolus exclusion
                     // Start with 0.0 bolus assuming there isn't one to cause a trigger and only add one if found
                     var lastBolus = 0.0
-                    var lastBolusTime = 0.0
                     var i = 1
                     // check the boluses in reverse order setting it only if the time is after the carb time minus prebolus time.
                     // This will make the loop stop at the most recent bolus that is over the minimum value or continue through all boluses
@@ -409,7 +399,6 @@ extension MainViewController {
                         // Set the bolus if it's after the carb time minus prebolus time
                         if (bolusData[bolusData.count - i].date >= lastCarbTime - Double(UserDefaultsRepository.alertMissedBolusPrebolus.value * 60)) {
                             lastBolus = bolusData[bolusData.count - i].value
-                            lastBolusTime = bolusData[bolusData.count - i].date
                         }
                         i += 1
                     }
@@ -504,6 +493,30 @@ extension MainViewController {
                 if UserDefaultsRepository.alertBatteryRepeat.value { numLoops = -1 }
                 triggerAlarm(sound: UserDefaultsRepository.alertBatterySound.value, snooozedBGReadingTime: nil, overrideVolume: UserDefaultsRepository.overrideSystemOutputVolume.value, numLoops: numLoops, snoozeTime: UserDefaultsRepository.alertBatterySnoozeHours.value, snoozeIncrement: 1, audio: true)
                 return
+            }
+        }
+
+        // Check for rapid battery drop
+        if UserDefaultsRepository.alertBatteryDropActive.value && !UserDefaultsRepository.alertBatteryDropIsSnoozed.value {
+            let targetDate = Calendar.current.date(byAdding: .minute, value: Int(-UserDefaultsRepository.alertBatteryDropPeriod.value), to: Date())!
+            let currentBatteryLevel = UserDefaultsRepository.deviceBatteryLevel.value as Double
+            let dropPercentage = Double(UserDefaultsRepository.alertBatteryDropPercentage.value)
+
+            // find the closest matching entry to the user defined timeframe
+            // this allows flexibility for ingress data matching as it can come at different intervals
+            if let previousBatteryLevel = deviceBatteryData.min(by: {
+                abs($0.timestamp.timeIntervalSince(targetDate)) < abs($1.timestamp.timeIntervalSince(targetDate))
+            }) {
+                // ignore a drop with a previous level of 100 as it will trigger a false alarm
+                if (previousBatteryLevel.batteryLevel < 100) {
+                    if (previousBatteryLevel.batteryLevel - currentBatteryLevel) >= dropPercentage {
+                        AlarmSound.whichAlarm = "Battery Drop"
+
+                        if UserDefaultsRepository.alertBatteryDropRepeat.value { numLoops = -1 }
+                        triggerAlarm(sound: UserDefaultsRepository.alertBatteryDropSound.value, snooozedBGReadingTime: nil, overrideVolume: UserDefaultsRepository.overrideSystemOutputVolume.value, numLoops: numLoops, snoozeTime: UserDefaultsRepository.alertBatteryDropSnoozeHours.value, snoozeIncrement: 1, audio: true)
+                        return
+                    }
+                }
             }
         }
 
@@ -669,6 +682,8 @@ extension MainViewController {
     
     func triggerAlarm(sound: String, snooozedBGReadingTime: TimeInterval?, overrideVolume: Bool, numLoops: Int, snoozeTime: Int = 0, snoozeIncrement: Int = 5, audio: Bool = true)
     {
+        LogManager.shared.log(category: .alarm, message: "Alarm triggered: \(AlarmSound.whichAlarm)")
+
         var audioDuringCall = true
         if !UserDefaultsRepository.alertAudioDuringPhone.value && isOnPhoneCall() { audioDuringCall = false }
         
@@ -855,6 +870,13 @@ extension MainViewController {
             alarms.reloadIsSnoozed(key: "alertBatteryIsSnoozed", value: false)
         }
 
+        if date > UserDefaultsRepository.alertBatteryDropSnoozedTime.value ?? date {
+            UserDefaultsRepository.alertBatteryDropSnoozedTime.setNil(key: "alertBatteryDropSnoozedTime")
+            UserDefaultsRepository.alertBatteryDropIsSnoozed.value = false
+            alarms.reloadSnoozeTime(key: "alertBatteryDropSnoozedTime", setNil: true)
+            alarms.reloadIsSnoozed(key: "alertBatteryDropIsSnoozed", value: false)
+        }
+
         if date > UserDefaultsRepository.alertRecBolusSnoozedTime.value ?? date {
             UserDefaultsRepository.alertRecBolusSnoozedTime.setNil(key: "alertRecBolusSnoozedTime")
             UserDefaultsRepository.alertRecBolusIsSnoozed.value = false
@@ -878,13 +900,8 @@ extension MainViewController {
     func checkQuietHours() {
         if UserDefaultsRepository.quietHourStart.value == nil || UserDefaultsRepository.quietHourEnd.value == nil { return }
         
-        var startDateComponents = DateComponents()
-        
         let today = Date()
         let todayCalendar = Calendar.current
-        let month = todayCalendar.component(.month, from: today)
-        let day = todayCalendar.component(.day, from: today)
-        let year = todayCalendar.component(.year, from: today)
         let hour = todayCalendar.component(.hour, from: today)
         let minute = todayCalendar.component(.minute, from: today)
         let todayMinutes = (60 * hour) + minute

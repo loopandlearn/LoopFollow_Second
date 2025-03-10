@@ -30,12 +30,11 @@ extension MainViewController {
     }
 
     private func handleDeviceStatusError() {
-        LogManager.shared.log(category: .deviceStatus, message: "Device status fetch failed!")
+        LogManager.shared.log(category: .deviceStatus, message: "Device status fetch failed!", limitIdentifier: "Device status fetch failed!")
         DispatchQueue.main.async {
             TaskScheduler.shared.rescheduleTask(id: .deviceStatus, to: Date().addingTimeInterval(10))
+            self.evaluateNotLooping()
         }
-
-        evaluateNotLooping()
     }
     
     func evaluateNotLooping() {
@@ -86,6 +85,7 @@ extension MainViewController {
 
         if jsonDeviceStatus.count == 0 {
             LogManager.shared.log(category: .deviceStatus, message: "Device status is empty")
+            TaskScheduler.shared.rescheduleTask(id: .deviceStatus, to: Date().addingTimeInterval(5 * 60))
             return
         }
         
@@ -112,10 +112,19 @@ extension MainViewController {
                    let upbat = uploader["battery"] as? Double {
                     infoManager.updateInfoData(type: .battery, value: String(format: "%.0f", upbat) + "%")
                     UserDefaultsRepository.deviceBatteryLevel.value = upbat
+                    let timestamp = uploader["timestamp"] as? Date ?? Date()
+
+                    let currentBattery = DataStructs.batteryStruct(batteryLevel: upbat, timestamp: timestamp)
+                    deviceBatteryData.append(currentBattery)
+
+                    // store only the last 30 battery readings
+                    if deviceBatteryData.count > 30 {
+                        deviceBatteryData.removeFirst()
+                    }
                 }
             }
         }
-        
+
         // Loop - handle new data
         if let lastLoopRecord = lastDeviceStatus?["loop"] as! [String : AnyObject]? {
             DeviceStatusLoop(formatter: formatter, lastLoopRecord: lastLoopRecord)
