@@ -9,18 +9,18 @@ struct SettingsMenuView: View {
     // MARK: - Observed Objects
 
     @ObservedObject private var nightscoutURL = Storage.shared.url
+    @ObservedObject private var settingsPath = Observable.shared.settingsPath
 
     // MARK: – Local state
 
-    @State private var path = NavigationPath()
     @State private var latestVersion: String?
     @State private var versionTint: Color = .secondary
-    @State private var navPath = NavigationPath()
+    @State private var showingTabCustomization = false
 
     // MARK: – Body
 
     var body: some View {
-        NavigationStack(path: $path) {
+        NavigationStack(path: $settingsPath.value) {
             List {
                 // ───────── Data settings ─────────
                 dataSection
@@ -30,32 +30,38 @@ struct SettingsMenuView: View {
                     NavigationRow(title: "Background Refresh Settings",
                                   icon: "arrow.clockwise")
                     {
-                        path.append(Sheet.backgroundRefresh)
+                        settingsPath.value.append(Sheet.backgroundRefresh)
                     }
 
                     NavigationRow(title: "General Settings",
                                   icon: "gearshape")
                     {
-                        path.append(Sheet.general)
+                        settingsPath.value.append(Sheet.general)
                     }
 
                     NavigationRow(title: "Graph Settings",
                                   icon: "chart.xyaxis.line")
                     {
-                        path.append(Sheet.graph)
+                        settingsPath.value.append(Sheet.graph)
+                    }
+
+                    NavigationRow(title: "Tab Settings",
+                                  icon: "rectangle.3.group")
+                    {
+                        showingTabCustomization = true
                     }
 
                     if !nightscoutURL.value.isEmpty {
                         NavigationRow(title: "Information Display Settings",
                                       icon: "info.circle")
                         {
-                            path.append(Sheet.infoDisplay)
+                            settingsPath.value.append(Sheet.infoDisplay)
                         }
 
                         NavigationRow(title: "Remote Settings",
                                       icon: "antenna.radiowaves.left.and.right")
                         {
-                            path.append(Sheet.remote)
+                            settingsPath.value.append(Sheet.remote)
                         }
                     }
                 }
@@ -65,13 +71,13 @@ struct SettingsMenuView: View {
                     NavigationRow(title: "Alarms",
                                   icon: "bell")
                     {
-                        path.append(Sheet.alarmsList)
+                        settingsPath.value.append(Sheet.alarmsList)
                     }
 
                     NavigationRow(title: "Alarm Settings",
                                   icon: "bell.badge")
                     {
-                        path.append(Sheet.alarmSettings)
+                        settingsPath.value.append(Sheet.alarmSettings)
                     }
                 }
 
@@ -80,13 +86,13 @@ struct SettingsMenuView: View {
                     NavigationRow(title: "Calendar",
                                   icon: "calendar")
                     {
-                        path.append(Sheet.calendar)
+                        settingsPath.value.append(Sheet.calendar)
                     }
 
                     NavigationRow(title: "Contact",
                                   icon: "person.circle")
                     {
-                        path.append(Sheet.contact)
+                        settingsPath.value.append(Sheet.contact)
                     }
                 }
 
@@ -95,7 +101,7 @@ struct SettingsMenuView: View {
                     NavigationRow(title: "Advanced Settings",
                                   icon: "exclamationmark.shield")
                     {
-                        path.append(Sheet.advanced)
+                        settingsPath.value.append(Sheet.advanced)
                     }
                 }
 
@@ -103,7 +109,7 @@ struct SettingsMenuView: View {
                     NavigationRow(title: "View Log",
                                   icon: "doc.text.magnifyingglass")
                     {
-                        path.append(Sheet.viewLog)
+                        settingsPath.value.append(Sheet.viewLog)
                     }
 
                     ActionRow(title: "Share Logs",
@@ -123,6 +129,15 @@ struct SettingsMenuView: View {
             }
             .navigationTitle("Settings")
             .navigationDestination(for: Sheet.self) { $0.destination }
+            .sheet(isPresented: $showingTabCustomization) {
+                TabCustomizationModal(
+                    isPresented: $showingTabCustomization,
+                    onApply: {
+                        // Dismiss any presented view controller and go to home tab
+                        handleTabReorganization()
+                    }
+                )
+            }
         }
         .task { await refreshVersionInfo() }
     }
@@ -145,13 +160,13 @@ struct SettingsMenuView: View {
             NavigationRow(title: "Nightscout Settings",
                           icon: "network")
             {
-                path.append(Sheet.nightscout)
+                settingsPath.value.append(Sheet.nightscout)
             }
 
             NavigationRow(title: "Dexcom Settings",
                           icon: "sensor.tag.radiowaves.forward")
             {
-                path.append(Sheet.dexcom)
+                settingsPath.value.append(Sheet.dexcom)
             }
         }
     }
@@ -212,6 +227,37 @@ struct SettingsMenuView: View {
         let avc = UIActivityViewController(activityItems: files,
                                            applicationActivities: nil)
         UIApplication.shared.topMost?.present(avc, animated: true)
+    }
+
+    private func handleTabReorganization() {
+        // Find the root tab bar controller
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first,
+              let rootVC = window.rootViewController else { return }
+
+        // Navigate through the hierarchy to find the tab bar controller
+        var tabBarController: UITabBarController?
+
+        if let tbc = rootVC as? UITabBarController {
+            tabBarController = tbc
+        } else if let nav = rootVC as? UINavigationController,
+                  let tbc = nav.viewControllers.first as? UITabBarController
+        {
+            tabBarController = tbc
+        }
+
+        guard let tabBar = tabBarController else { return }
+
+        // Dismiss any modals first
+        if let presented = tabBar.presentedViewController {
+            presented.dismiss(animated: false) {
+                // After dismissal, switch to home tab
+                tabBar.selectedIndex = 0
+            }
+        } else {
+            // No modal to dismiss, just switch to home
+            tabBar.selectedIndex = 0
+        }
     }
 }
 
