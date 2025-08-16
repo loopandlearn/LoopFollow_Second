@@ -1,8 +1,7 @@
 // LoopFollow
 // Glyph.swift
-// Created by Jonas Björkert.
 
-import SwiftUICore
+import SwiftUI
 
 struct Glyph: View {
     let symbol: String

@@ -1,6 +1,5 @@
 // LoopFollow
 // SettingsMenuView.swift
-// Created by Jonas Björkert.
 
 import SwiftUI
 import UIKit
@@ -16,6 +15,10 @@ struct SettingsMenuView: View {
     @State private var latestVersion: String?
     @State private var versionTint: Color = .secondary
     @State private var showingTabCustomization = false
+
+    // MARK: – Observed objects
+
+    @ObservedObject private var url = Storage.shared.url
 
     // MARK: – Body
 

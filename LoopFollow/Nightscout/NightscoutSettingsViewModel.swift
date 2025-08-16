@@ -1,6 +1,5 @@
 // LoopFollow
 // NightscoutSettingsViewModel.swift
-// Created by Jonas Björkert.
 
 import Combine
 import Foundation
@@ -88,7 +87,7 @@ class NightscoutSettingsViewModel: ObservableObject {
         if !useTokenUrl {
             let filtered = value.replacingOccurrences(of: "[^A-Za-z0-9:/._-]", with: "", options: .regularExpression).lowercased()
             var cleanURL = filtered
-            while cleanURL.count > 8 && cleanURL.last == "/" {
+            while cleanURL.count > 8, cleanURL.last == "/" {
                 cleanURL = String(cleanURL.dropLast())
             }
             nightscoutURL = cleanURL

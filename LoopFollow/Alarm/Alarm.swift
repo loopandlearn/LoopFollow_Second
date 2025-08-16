@@ -1,6 +1,5 @@
 // LoopFollow
 // Alarm.swift
-// Created by Jonas Björkert.
 
 import Foundation
 import HealthKit
@@ -131,7 +130,7 @@ struct Alarm: Identifiable, Codable, Equatable {
         }
 
         // Mute during calls
-        if !config.audioDuringCalls && isOnPhoneCall() {
+        if !config.audioDuringCalls, isOnPhoneCall() {
             playSound = false
         }
 
