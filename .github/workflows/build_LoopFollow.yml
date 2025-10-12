@@ -5,7 +5,7 @@ on:
   schedule:
     # Check for updates every Sunday
     #   Later logic builds if there are updates or if it is the 2nd Sunday of the month
-    - cron: "27 10 * * 0" # Sunday at UTC 10:17
+    - cron: "27 10 * * 0" # Sunday at UTC 10:27
 
 env:  
   UPSTREAM_REPO: loopandlearn/LoopFollow_Second
