@@ -1,28 +1,27 @@
 // LoopFollow
-// RecBolusAlarmEditor.swift
+// PumpBatteryAlarmEditor.swift
 
 import SwiftUI
 
-struct RecBolusAlarmEditor: View {
+struct PumpBatteryAlarmEditor: View {
     @Binding var alarm: Alarm
 
     var body: some View {
         Group {
             InfoBanner(
-                text: "Alerts when the recommended bolus equals or exceeds the " +
-                    "threshold you set below.",
+                text: "This warns you when the pump's battery gets low, based on the percentage you choose.",
                 alarmType: alarm.type
             )
 
             AlarmGeneralSection(alarm: $alarm)
 
             AlarmStepperSection(
-                header: "Threshold",
-                footer: "Alert when recommended bolus is at or above this value.",
-                title: "At or Above",
-                range: 0.1 ... 50,
-                step: 0.1,
-                unitLabel: "Units",
+                header: "Pump Battery Level",
+                footer: "This alerts you when the pump battery drops to or below this level.",
+                title: "At or Below",
+                range: 0 ... 100,
+                step: 5,
+                unitLabel: "%",
                 value: $alarm.threshold
             )
 
