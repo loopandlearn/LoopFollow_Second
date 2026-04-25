@@ -55,7 +55,8 @@ platform :ios do
       type: "appstore",
       git_basic_authorization: Base64.strict_encode64("#{GITHUB_REPOSITORY_OWNER}:#{GH_PAT}"),
       app_identifier: [
-        "com.#{TEAMID}.LoopFollow.Second"
+        "com.#{TEAMID}.LoopFollow.Second",
+        "com.#{TEAMID}.LoopFollow.Second.LoopFollowLAExtension"
       ]
     )
 
@@ -70,13 +71,26 @@ platform :ios do
       targets: ["LoopFollow"]
     )
 
+    update_code_signing_settings(
+      path: "#{GITHUB_WORKSPACE}/LoopFollow.xcodeproj",    
+      profile_name: mapping["com.#{TEAMID}.LoopFollow.Second.LoopFollowLAExtension"],
+      code_sign_identity: "iPhone Distribution",
+      targets: ["LoopFollowLAExtensionExtension"]
+    )
+
     gym(
       export_method: "app-store",
       scheme: "LoopFollow",
       output_name: "LoopFollow.ipa",
       configuration: "Release",
       destination: 'generic/platform=iOS',
-      buildlog_path: 'buildlog'
+      buildlog_path: 'buildlog',
+      export_options: {
+        provisioningProfiles: {
+          "com.#{TEAMID}.LoopFollow.Second" => mapping["com.#{TEAMID}.LoopFollow.Second"],
+          "com.#{TEAMID}.LoopFollow.Second.LoopFollowLAExtension" => mapping["com.#{TEAMID}.LoopFollow.Second.LoopFollowLAExtension"]
+        }
+      }	
     )
 
     copy_artifacts(
@@ -125,9 +139,14 @@ platform :ios do
     end
 
     configure_bundle_id("LoopFollowSecond", "com.#{TEAMID}.LoopFollow.Second", [
+      Spaceship::ConnectAPI::BundleIdCapability::Type::APP_GROUPS,
       Spaceship::ConnectAPI::BundleIdCapability::Type::PUSH_NOTIFICATIONS
     ])
     
+    configure_bundle_id("LoopFollowSecond Live Activity Extension", "com.#{TEAMID}.LoopFollow.Second.LoopFollowLAExtension", [
+      Spaceship::ConnectAPI::BundleIdCapability::Type::APP_GROUPS
+    ])
+
   end
 
   desc "Provision Certificates"
@@ -148,6 +167,7 @@ platform :ios do
       git_basic_authorization: Base64.strict_encode64("#{GITHUB_REPOSITORY_OWNER}:#{GH_PAT}"),
       app_identifier: [
         "com.#{TEAMID}.LoopFollow.Second",
+	"com.#{TEAMID}.LoopFollow.Second.LoopFollowLAExtension"
       ]
     )
   end
@@ -162,12 +182,6 @@ platform :ios do
       issuer_id: "#{FASTLANE_ISSUER_ID}",
       key_content: "#{FASTLANE_KEY}"
     )
-
-    def find_bundle_id(identifier)
-      bundle_id = Spaceship::ConnectAPI::BundleId.find(identifier)
-    end
-
-    find_bundle_id("com.#{TEAMID}.LoopFollow.Second")
 
     match(
       type: "appstore",
